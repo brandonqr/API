@@ -1,5 +1,6 @@
 const devConfig = {
   MONGO_URL: 'mongodb://localhost/quack-dev',
+  JWT_SECRET:'thisisasecret'
 };
 
 const testConfig = {
