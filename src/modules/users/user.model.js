@@ -4,6 +4,7 @@ import { hashSync, compareSync } from 'bcrypt-nodejs';//para encriptar la contra
 import jwt from 'jsonwebtoken';
 import { passwordReg } from './user.validations';
 import constants from '../../config/constants'
+import uniqueValidator from 'mongoose-unique-validator';
 
 const UserSchema = new Schema({
   email:{
@@ -46,7 +47,12 @@ const UserSchema = new Schema({
       message: '{VALUE} is not a valid password!',
     },
   },
-});
+}, { timestamp: true });
+
+UserSchema.plugin(uniqueValidator, {
+  message: '{ VALUE } already taken!'
+})
+
 UserSchema.pre('save', function (next) {
   if (this.isModified('password')) {
     this.password=this.hashPassword(this.password);
@@ -67,12 +73,20 @@ UserSchema.methods = {
       _id:this._id,
     },
     constants.JWT_SECRET,
-  );},
+  );
+},
+toAuthJSON(){
+  return{
+    _id: this._id,
+    userName:this.userName,
+    token:`JWT ${this.createToken()}`
+  }
+},
   toJSON(){
     return{
       _id: this._id,
       userName:this.userName,
-      token:`JWT ${this.createToken()}`
+      //token:`JWT ${this.createToken()}`
     }
   }
 
