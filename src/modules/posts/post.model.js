@@ -1,6 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import slug from 'slug';
 import uniqueValidator from 'mongoose-unique-validator';
+var timestamps = require('mongoose-timestamp');
 
 const PostSchema = new Schema({
   title:{
@@ -29,18 +30,20 @@ const PostSchema = new Schema({
     type: Number,
     default: 0
   }
-},
-{ timestamp: true });
+});
 
 PostSchema.plugin(uniqueValidator,{
   message: '{VALUE} already taken!'
 });
+PostSchema.plugin(timestamps);
 
 PostSchema.pre('validate', function (next) {
   this.slugify();
   next();
 })
-
+/*
+http://mongoosejs.com/docs/2.7.x/docs/methods-statics.html
+*/
 PostSchema.methods ={
   slugify(){
     this.slug = slug(this.title);
@@ -57,14 +60,24 @@ PostSchema.methods ={
     }
   }
 };
-
+/*
+Statics are pretty much the same as methods but allow for defining functions that exist directly on your Model.
+*/
 PostSchema.statics = {
-  createPost(args, user){//args es lomismo que req.body
+  createPost(args, user){//args es lo mismo que req.body
+
     return this.create({
       ...args,
       user
     });
-  }
+  },
+  list( { skip = 0, limit = 5 } = {} ){
+    return this.find()
+                .sort( { createdAt: -1} )//lo ordena de forma descendiente
+                .skip( skip )
+                .limit(limit)
+                .populate( 'user' );
+  },
 }
 
 export default mongoose.model('Post', PostSchema);

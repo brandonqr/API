@@ -132,11 +132,11 @@ var _passport = __webpack_require__(10);
 
 var _passport2 = _interopRequireDefault(_passport);
 
-var _passportLocal = __webpack_require__(28);
+var _passportLocal = __webpack_require__(29);
 
 var _passportLocal2 = _interopRequireDefault(_passportLocal);
 
-var _passportJwt = __webpack_require__(27);
+var _passportJwt = __webpack_require__(28);
 
 var _user = __webpack_require__(4);
 
@@ -229,7 +229,7 @@ var _mongoose = __webpack_require__(3);
 
 var _mongoose2 = _interopRequireDefault(_mongoose);
 
-var _validator = __webpack_require__(30);
+var _validator = __webpack_require__(31);
 
 var _validator2 = _interopRequireDefault(_validator);
 
@@ -437,7 +437,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _morgan = __webpack_require__(26);
+var _morgan = __webpack_require__(27);
 
 var _morgan2 = _interopRequireDefault(_morgan);
 
@@ -570,7 +570,7 @@ app.listen(_constants2.default.PORT, err => {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getPostById = exports.createPost = undefined;
+exports.getPostsList = exports.getPostById = exports.createPost = undefined;
 
 let createPost = exports.createPost = (() => {
   var _ref = _asyncToGenerator(function* (req, res) {
@@ -603,6 +603,23 @@ let getPostById = exports.getPostById = (() => {
   };
 })();
 
+let getPostsList = exports.getPostsList = (() => {
+  var _ref3 = _asyncToGenerator(function* (req, res) {
+    const limit = parseInt(req.query.limit, 0);
+    const skip = parseInt(req.query.skip, 0);
+    try {
+      const posts = yield _post2.default.list({ limit: limit, skip: skip });
+      return res.status(_httpStatus2.default.OK).json(posts);
+    } catch (e) {
+      return res.status(_httpStatus2.default.BAD_REQUEST).json(e);
+    }
+  });
+
+  return function getPostsList(_x5, _x6) {
+    return _ref3.apply(this, arguments);
+  };
+})();
+
 var _httpStatus = __webpack_require__(7);
 
 var _httpStatus2 = _interopRequireDefault(_httpStatus);
@@ -632,7 +649,7 @@ var _mongoose = __webpack_require__(3);
 
 var _mongoose2 = _interopRequireDefault(_mongoose);
 
-var _slug = __webpack_require__(29);
+var _slug = __webpack_require__(30);
 
 var _slug2 = _interopRequireDefault(_slug);
 
@@ -641,6 +658,8 @@ var _mongooseUniqueValidator = __webpack_require__(9);
 var _mongooseUniqueValidator2 = _interopRequireDefault(_mongooseUniqueValidator);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var timestamps = __webpack_require__(26);
 
 const PostSchema = new _mongoose.Schema({
   title: {
@@ -669,17 +688,20 @@ const PostSchema = new _mongoose.Schema({
     type: Number,
     default: 0
   }
-}, { timestamp: true });
+});
 
 PostSchema.plugin(_mongooseUniqueValidator2.default, {
   message: '{VALUE} already taken!'
 });
+PostSchema.plugin(timestamps);
 
 PostSchema.pre('validate', function (next) {
   this.slugify();
   next();
 });
-
+/*
+http://mongoosejs.com/docs/2.7.x/docs/methods-statics.html
+*/
 PostSchema.methods = {
   slugify() {
     this.slug = (0, _slug2.default)(this.title);
@@ -696,13 +718,20 @@ PostSchema.methods = {
     };
   }
 };
-
+/*
+Statics are pretty much the same as methods but allow for defining functions that exist directly on your Model.
+*/
 PostSchema.statics = {
   createPost(args, user) {
-    //args es lomismo que req.body
+    //args es lo mismo que req.body
+
     return this.create(_extends({}, args, {
       user
     }));
+  },
+  list({ skip = 0, limit = 5 } = {}) {
+    return this.find().sort({ createdAt: -1 }) //lo ordena de forma descendiente
+    .skip(skip).limit(limit).populate('user');
   }
 };
 
@@ -742,7 +771,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const routes = new _express.Router();
 routes.post('/', _auth.authJwt, (0, _expressValidation2.default)(_post3.default.createPost), postController.createPost);
 routes.get('/:id', postController.getPostById);
-
+routes.get('/', postController.getPostsList);
 exports.default = routes;
 
 /***/ }),
@@ -890,28 +919,34 @@ module.exports = require("jsonwebtoken");
 /* 26 */
 /***/ (function(module, exports) {
 
-module.exports = require("morgan");
+module.exports = require("mongoose-timestamp");
 
 /***/ }),
 /* 27 */
 /***/ (function(module, exports) {
 
-module.exports = require("passport-jwt");
+module.exports = require("morgan");
 
 /***/ }),
 /* 28 */
 /***/ (function(module, exports) {
 
-module.exports = require("passport-local");
+module.exports = require("passport-jwt");
 
 /***/ }),
 /* 29 */
 /***/ (function(module, exports) {
 
-module.exports = require("slug");
+module.exports = require("passport-local");
 
 /***/ }),
 /* 30 */
+/***/ (function(module, exports) {
+
+module.exports = require("slug");
+
+/***/ }),
+/* 31 */
 /***/ (function(module, exports) {
 
 module.exports = require("validator");
